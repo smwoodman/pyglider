@@ -234,6 +234,9 @@ def make_gridfiles(
     dz : float, default = 1
         Vertical grid spacing in meters.
 
+    starttime : str, default = '1970-01-01'
+        Start time for gridding.  Data before this time is ignored.
+
     maskfunction : callable or None, optional
         Function applied to the dataset before gridding,
         usually to choose what data will be set to NaN based on quality flags.
@@ -250,7 +253,10 @@ def make_gridfiles(
         with subsequent files overwriting previous files.
 
     Note:
-    By default, the arithmetic mean is used to bin all variables, except for those with
+    By default, the arithmetic mean is used to bin all variables, except for
+    distance_over_ground (never gridded), some profile variables 
+    (profile_start_time, profile_end_time, and profile_direction, 
+    which are gridded using min, max, and mode, respectively), or variables with
     an average_method attribute inherited from the timeseries. This attribute is specified
     in the YAML configuration file when the timeseries is created. For example, if a variable
     has average_method: geometric mean, the geometric mean is used when gridding that variable.
@@ -272,6 +278,7 @@ def make_gridfiles(
     profile_index_varname = utils._resolve_role(ds, varnames, 'profile_index')
     lat_varname = utils._resolve_role(ds, varnames, 'latitude')
     lon_varname = utils._resolve_role(ds, varnames, 'longitude')
+    profile_direction_varname = utils._resolve_role(ds, varnames, 'profile_direction')
 
     if maskfunction is not None:
         ds = maskfunction(ds)
@@ -323,19 +330,26 @@ def make_gridfiles(
         'comment': 'center of depth bins',
     }
 
-    # Bin by profile index, for the mean time, lat, and lon values for each profile
+ # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = xr.DataArray(
         ds.time.values.astype(np.float64), dims=['time'], attrs={}
     )
 
-    for td in ('time_1970', lon_varname, lat_varname):
+    for td in ('time_1970', lon_varname, lat_varname, profile_direction_varname):
 
         good = np.where(~np.isnan(ds[td]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) > 1:
+            if td == profile_direction_varname:
+                method = (lambda x: stats.mode(x, keepdims=True, nan_policy='omit')[0][0])
+                ds[td].attrs["average_method"] = "mode"
+            else:
+                method = 'mean'
+                ds[td].attrs["average_method"] = "arithmetic mean"
+
             dat, xedges, binnumber = stats.binned_statistic(
                 ds[profile_index_varname].values[good],
                 ds[td].values[good],
-                statistic='mean',
+                statistic=method,
                 bins=[profile_bins],
             )
             if td == 'time_1970':
@@ -352,6 +366,9 @@ def make_gridfiles(
     good = np.where(~np.isnan(ds['time']) & (ds[profile_index_varname] % 1 == 0))[0]
     for td, bin_stat in profile_lookup.items():
         _log.debug(f'td, bin_stat {td}, {bin_stat}')
+        attrs = profile_meta.get(td, {})
+        attrs['average_method'] = bin_stat
+
         dat, xedges, binnumber = stats.binned_statistic(
             ds[profile_index_varname].values[good],
             ds['time_1970'].values[good],
@@ -360,17 +377,24 @@ def make_gridfiles(
         )
         dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
-        dsout[td] = ((xdimname), dat, profile_meta.get(td, {}))
+        dsout[td] = ((xdimname), dat, attrs)
 
     ds = ds.drop_vars('time_1970')
-    _log.info(f'Done times!')
+    _log.info('Done times!')
 
 
-    skip_vars = {'time', lat_varname, lon_varname, depth_varname, profile_index_varname}
+    skip_vars = {
+        'time', lat_varname, lon_varname, depth_varname, profile_index_varname, 
+        "distance_over_ground", "DISTANCE_OVER_GROUND", 
+        profile_direction_varname, 
+    }
     for k in ds.keys():
         if k in skip_vars or 'time' in k:
             continue
         if not np.issubdtype(ds[k].dtype, np.number):
+            continue
+        if 'average_method' in ds[k].attrs.keys() and ds[k].attrs['average_method'] == 'none':
+            _log.debug('Skipping %s because average_method is none', k)
             continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds[profile_index_varname] % 1 == 0))[0]
@@ -379,12 +403,13 @@ def make_gridfiles(
         if 'QC_protocol' in ds[k].attrs.values():
             method = np.nanmax
         else:
-            if 'average_method' in ds[k].attrs.values():
+            if 'average_method' in ds[k].attrs.keys():
                 method = ds[k].attrs['average_method']
                 if method == 'geometric mean':
                     method = stats.gmean
             else:
                 method = 'mean'
+                ds[k].attrs['average_method'] = 'arithmetic mean'
 
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds[profile_index_varname].values[good],
