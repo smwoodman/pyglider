@@ -279,6 +279,7 @@ def make_gridfiles(
     lat_varname = utils._resolve_role(ds, varnames, 'latitude')
     lon_varname = utils._resolve_role(ds, varnames, 'longitude')
     profile_direction_varname = utils._resolve_role(ds, varnames, 'profile_direction')
+    dog_varname = utils._resolve_role(ds, varnames, 'distance_over_ground')
 
     if maskfunction is not None:
         ds = maskfunction(ds)
@@ -385,8 +386,7 @@ def make_gridfiles(
 
     skip_vars = {
         'time', lat_varname, lon_varname, depth_varname, profile_index_varname, 
-        "distance_over_ground", "DISTANCE_OVER_GROUND", 
-        profile_direction_varname, 
+        profile_direction_varname, dog_varname
     }
     for k in ds.keys():
         if k in skip_vars or 'time' in k:
