@@ -365,15 +365,15 @@ def make_gridfiles(
     # Bin by profile index, for the profile start (min) and end (max) times
     profile_lookup = {'profile_time_start': "min", 'profile_time_end': "max"}
     good = np.where(~np.isnan(ds['time']) & (ds[profile_index_varname] % 1 == 0))[0]
-    for td, bin_stat in profile_lookup.items():
-        _log.debug(f'td, bin_stat {td}, {bin_stat}')
+    for td, method in profile_lookup.items():
+        _log.debug(f'td, method {td}, {method}')
         attrs = profile_meta.get(td, {})
-        attrs['average_method'] = bin_stat
+        attrs['average_method'] = method
 
         dat, xedges, binnumber = stats.binned_statistic(
             ds[profile_index_varname].values[good],
             ds['time_1970'].values[good],
-            statistic=bin_stat,
+            statistic=method,
             bins=[profile_bins],
         )
         dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
