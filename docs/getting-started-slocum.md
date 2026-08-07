@@ -36,6 +36,8 @@ The example script is relatively straight forward if there is no intermediate pr
 
 Data comes from an input directory, and is translated into a single CF-compliant netCDF timeseries file using the package [dbdreader](https://dbdreader.readthedocs.io/en/latest/). Finally individual profiles are saved and a 2-D 1-m grid in time-depth is saved.
 
+`dbdreader` is now available on conda-forge, so it can be installed with `conda install dbdreader` or `pixi add dbdreader`. If you installed `pyglider` from PyPI with `pip`, `dbdreader` is already included as a dependency. However, the `pyglider` conda-forge package does not currently pull in `dbdreader`, so if you installed `pyglider` with `conda install -c conda-forge pyglider` or `pixi add pyglider`, you will need to install `dbdreader` separately as above.
+
 :::{note}
 There is a version that does not require `dbdreader` to do the initial conversion from the Dinkum format to netCDF. However it is quite slow, particularly for full-resolution datasets, and less robust. We suggest using the `slocum.raw_to_timeseries`.
 :::

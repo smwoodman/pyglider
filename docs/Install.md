@@ -21,7 +21,19 @@ pixi init
 pixi add pyglider
 ```
 
+### Slocum glider users: dbdreader
 
+If you work with Slocum glider data, PyGlider uses [`dbdreader`](https://dbdreader.readthedocs.io/en/latest/) to read the raw binary files. `dbdreader` is a required dependency when installing from PyPI with `pip`, so it will already be present in that case. However, the `pyglider` conda-forge package does not currently pull in `dbdreader`, so if you installed with `conda install -c conda-forge pyglider` or `pixi add pyglider`, install it separately:
+
+```
+conda install dbdreader
+```
+
+or with pixi:
+
+```
+pixi add dbdreader
+```
 
 ## Editable installation
 
