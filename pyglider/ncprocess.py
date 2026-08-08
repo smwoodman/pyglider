@@ -435,7 +435,7 @@ def make_gridfiles(
         dsout['u'].attrs = profile_meta['u']
         dsout['v'] = dsout.water_velocity_northward.mean(axis=0)
         dsout['v'].attrs = profile_meta['v']
-        dsout = dsout.drop(['water_velocity_eastward', 'water_velocity_northward'])
+        dsout = dsout.drop_vars(['water_velocity_eastward', 'water_velocity_northward'])
     dsout.attrs = ds.attrs
     dsout.attrs.pop('cdm_data_type')
 
