@@ -400,13 +400,13 @@ def make_gridfiles(
         good = np.where(~np.isnan(ds[k]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) <= 0:
             continue
-        if 'QC_protocol' in ds[k].attrs.values():
-            method = np.nanmax
         else:
             if 'average_method' in ds[k].attrs.keys():
                 method = ds[k].attrs['average_method']
                 if method == 'geometric mean':
                     method = stats.gmean
+                if method == 'QC_protocol':
+                    method = np.nanmax
             else:
                 method = 'mean'
                 ds[k].attrs['average_method'] = 'arithmetic mean'
