@@ -323,13 +323,15 @@ def make_gridfiles(
     )
     dsout[depth_varname].attrs = {
         'units': 'm',
-        'long_name': 'Depth',
+        'long_name': ds[depth_varname].attrs.get('long_name', 'Depth'),
         'standard_name': 'depth',
         'positive': 'down',
         'source': ds[depth_varname].attrs.get('source', ''),
         'coverage_content_type': 'coordinate',
         'comment': 'center of depth bins',
     }
+    dsout['profile'].attrs = ds[profile_index_varname].attrs
+
 
  # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = xr.DataArray(
