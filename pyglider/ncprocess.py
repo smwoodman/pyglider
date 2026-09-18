@@ -442,7 +442,7 @@ def make_gridfiles(
     dsout.attrs.pop('cdm_data_type')
 
     # fix to be ISO parsable:
-    if len(dsout.attrs['deployment_start']) > 18:
+    if len(dsout.attrs.get("deployment_start", "")) > 18:
         dsout.attrs['deployment_start'] = dsout.attrs['deployment_start'][:19]
         dsout.attrs['deployment_end'] = dsout.attrs['deployment_end'][:19]
         dsout.attrs['time_coverage_start'] = dsout.attrs['time_coverage_start'][:19]
